@@ -1,0 +1,27 @@
+{
+  "name": "file-storage-project",
+  "version": "1.0.0",
+  "description": "File Storage Project will Drag and Drop File Upload",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/training4developers/file-storage-project.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/training4developers/file-storage-project/issues"
+  },
+  "homepage": "https://github.com/training4developers/file-storage-project",
+  "devDependencies": {
+    "grunt": "^0.4.5"
+  },
+  "dependencies": {
+    "body-parser": "^1.12.2",
+    "express": "^4.12.3",
+    "multer": "^0.1.8"
+  }
+}
