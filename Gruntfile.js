@@ -6,6 +6,10 @@ module.exports = function(grunt) {
       rootFolder: "www",
       port: 8080,
       uploadFolder: "www/uploads"
+    },
+    mongoServer: {
+      host: 'localhost',
+      port: 27017
     }
 
   });
@@ -17,42 +21,79 @@ module.exports = function(grunt) {
       express = require("express"),
       bodyParser = require("body-parser"),
       multer = require("multer"),
+      mongo = require("mongodb").MongoClient,
       app = express(),
-      webServerConfig = grunt.config("webServer");
+      webServerConfig = grunt.config("webServer"),
+      mongoServerConfig = grunt.config("mongoServer");
 
     this.async();
 
-    app.use(bodyParser.json());
-    app.use(multer({
-      dest: webServerConfig.uploadFolder,
-      rename: function(fieldName, fileName) {
-        return fileName;
-      }
-    }));
+    mongo.connect("mongodb://" + mongoServerConfig.host + ":" + mongoServerConfig.port,
+      function(err, db) {
 
-    app.use(express.static(webServerConfig.rootFolder));
+        if (err) {
+          grunt.log.writeln("Failed to connect to MongoDB Server on " +
+            mongoServerConfig.host + ":" + mongoServerConfig.port + ".\nError: " + err);
+          return;
+        }
 
-    app.get("/svc/files", function(req, res) {
+        var dbFileStorage = db.db("FileStorage");
 
-      res.json([
-        { id: 1, name: 'test1.txt', size: 2048, modified: Date.now() },
-        { id: 2, name: 'test2.txt', size: 4096, modified: Date.now() },
-        { id: 3, name: 'test3.txt', size: 1024, modified: Date.now() },
-      ]);
+        app.use(bodyParser.json());
+        app.use(multer({
+          dest: webServerConfig.uploadFolder,
+          rename: function(fieldName, fileName) {
+            return fileName;
+          }
+        }));
 
-    });
+        app.use(express.static(webServerConfig.rootFolder));
 
-    app.post("/svc/files", function(req, res) {
+        app.get("/svc/files", function(req, res) {
 
-    });
+          dbFileStorage.collection("Files")
+  					.find()
+  					.toArray(function(err, files) {
+  						res.json(files);
+  					});
 
-    app.delete("/svc/file/:fileId", function(req, res) {
+        });
 
-    });
+        app.get("/svc/file/:fileId", function(req, res) {
 
-    http.createServer(app).listen(webServerConfig.port, function() {
-      grunt.log.writeln("web server started on port: " + webServerConfig.port);
-    });
+          dbFileStorage.collection("Files")
+  					.find({ "_id": new myBSON.ObjectID(req.params.fileId) })
+  					.nextObject(function(err, file) {
+  						res.json(file);
+  					});
+
+        });
+
+
+        app.post("/svc/file", function(req, res) {
+
+          dbFileStorage.collection("Files")
+  					.insert(req.body.file, function(err, file) {
+  						res.json(file);
+  					});
+
+        });
+
+        app.delete("/svc/file/:fileId", function(req, res) {
+
+          dbFileStorage.collection("Files")
+  					.remove({ "_id" : new myBSON.ObjectID(req.params.fileId) },
+  						function(err, numberRemoved) {
+  							res.json(numberRemoved);
+  						});
+
+        });
+
+        http.createServer(app).listen(webServerConfig.port, function() {
+          grunt.log.writeln("web server started on port: " + webServerConfig.port);
+        });
+
+      });
 
   });
 
