@@ -4,10 +4,153 @@
 
   <head>
     <title>File Storage Project</title>
+    <script src="libs/jquery/dist/jquery.js"></script>
+    <script src="libs/angular/angular.js"></script>
+    <style>
+
+      .drop-zone {
+        width:200px;
+        height: 200px;
+        border:2px dashed gray;
+      }
+
+      .drop-zone-active {
+        border:2px dashed red;
+      }
+
+    </style>
   </head>
 
   <body>
-    File Storage Project
+
+    <div ng-app="MyApp">
+      <div ng-controller="MyCtrl">
+
+        <div vmw-drag-drop-upload="drop-zone"></div>
+
+      </div>
+    </div>
+
+    <script>
+
+      angular.module("MyApp", [])
+        .directive("vmwDragDropUpload", function($http) {
+
+          return {
+
+            link: function(scope, element, attrs) {
+
+              attrs.$addClass(attrs.vmwDragDropUpload);
+
+              element.on("dragenter", function(e) {
+
+                // calls to attrs.$addClass have to wrapped in $apply to
+                // be effective
+                scope.$apply(function() {
+                  attrs.$addClass(attrs.vmwDragDropUpload + "-active");
+                });
+
+              });
+
+              element.on("dragleave", function(e) {
+
+                // calls to attrs.$removeClass have to wrapped in $apply to
+                // be effective
+                scope.$apply(function() {
+                  attrs.$removeClass(attrs.vmwDragDropUpload + "-active");
+                });
+              });
+
+              element.on("dragover", function(e) {
+                e.preventDefault();
+              });
+
+              element.on("drop", function(e) {
+
+                e.preventDefault();
+
+                var fd = new FormData();
+
+                for (var x=0; x<e.originalEvent.dataTransfer.files.length; x++) {
+                  fd.append("file-" + x, e.originalEvent.dataTransfer.files[x]);
+                }
+
+                /* Angular.js solution */
+                scope.$apply(function() {
+                  attrs.$removeClass(attrs.vmwDragDropUpload + "-active");
+                  // for an explanation on these params, check out the following
+                  // blog post:
+                  // https://uncorkedstudios.com/blog/multipartformdata-file-upload-with-angularjs
+                  $http.post("/uploads", fd, {
+                    transformRequest: angular.identity,
+                    headers: { 'Content-Type': undefined }
+                  }).then(function(result) {
+                    console.dir(result);
+                  });
+                });
+
+                /* Pure HTML5 Solution
+                /*
+                var xhr = new XMLHttpRequest();
+
+                xhr.onreadystatechange = function() {
+                  if (xhr.readyState === 4 && xhr.status === 200) {
+                    console.dir(JSON.parse(xhr.responseText));
+                  }
+                };
+
+                xhr.open("POST", "/uploads");
+                xhr.send(fd);
+                */
+              });
+
+
+
+            }
+
+          };
+
+        })
+        .factory("fileData", function($http) {
+
+          return {
+
+            getAll: function() {
+              return $http.get("/svc/files");
+            },
+            get: function(fileId) {
+              return $http.get("/svc/file/" + encodeURIComponent(fileId));
+            },
+            insert: function(file) {
+              return $http.post("/svc/file", { file: file });
+            },
+            update: function(file) {
+              return $http.put("/svc/file/" + encodeURIComponent(file.id), { file: file });
+            },
+            delete: function(fileId) {
+              return $http.delete("/svc/file/" + encodeURIComponent(fileId));
+            }
+          };
+
+
+        })
+        .controller("MyCtrl", function(fileData) {
+
+          /*
+          fileData.update({
+            id: "551bf0b7eb312027ea98a93c",
+            name: "test1.txt",
+            size: 4096,
+            modified: Date.now()
+          }).then(function(result) {
+            console.dir(result);
+          });
+          */
+
+        });
+
+    </script>
+
   </body>
 
 </html>

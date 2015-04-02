@@ -21,7 +21,7 @@ module.exports = function(grunt) {
       express = require("express"),
       bodyParser = require("body-parser"),
       multer = require("multer"),
-      mongo = require("mongodb").MongoClient,
+      mongo = require("mongodb"),
       app = express(),
       webServerConfig = grunt.config("webServer"),
       mongoServerConfig = grunt.config("mongoServer");
@@ -61,11 +61,22 @@ module.exports = function(grunt) {
 
         app.get("/svc/file/:fileId", function(req, res) {
 
+          console.log(req.params.fileId);
+          console.log(mongo.BSONPure);
+
           dbFileStorage.collection("Files")
-  					.find({ "_id": new myBSON.ObjectID(req.params.fileId) })
+  					.find({ "_id": new mongo.ObjectID(req.params.fileId) })
   					.nextObject(function(err, file) {
   						res.json(file);
   					});
+
+        });
+
+        app.post("/uploads", function(req, res) {
+
+          res.json({
+            message: "file upload successful!"
+          });
 
         });
 
@@ -79,10 +90,24 @@ module.exports = function(grunt) {
 
         });
 
+        app.put('/svc/file/:fileId', function(req, res) {
+
+  				req.body.file._id = new mongo.ObjectID(req.params.fileId);
+
+          dbFileStorage.collection("Files")
+  					.update({ "_id" : req.body.file._id },
+  						{$set: req.body.file},
+  						{w:1},
+  						function(err) {
+  							res.json(err);
+  						});
+
+  			});
+
         app.delete("/svc/file/:fileId", function(req, res) {
 
           dbFileStorage.collection("Files")
-  					.remove({ "_id" : new myBSON.ObjectID(req.params.fileId) },
+  					.remove({ "_id" : new mongo.ObjectID(req.params.fileId) },
   						function(err, numberRemoved) {
   							res.json(numberRemoved);
   						});
